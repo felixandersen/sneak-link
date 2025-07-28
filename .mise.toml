@@ -1,0 +1,13 @@
+[tools]
+python = "latest"
+
+[tasks.build_image]
+description = "Build the image"
+run = "docker build --platform linux/amd64 -t ghcr.io/felixandersen/sneak-link:$(cat VERSION) ."
+
+[tasks.push_image]
+description = "Push the image"
+run = [
+  "echo $CR_PAT | docker login ghcr.io -u felixandersen --password-stdin",
+  "docker push ghcr.io/felixandersen/sneak-link:$(cat VERSION)"
+]
