@@ -11,3 +11,10 @@ run = [
   "echo $CR_PAT | docker login ghcr.io -u felixandersen --password-stdin",
   "docker push ghcr.io/felixandersen/sneak-link:$(cat VERSION)"
 ]
+
+[tasks.build_and_push_image_dev]
+description = "Push the image to development server for testing"
+run = [
+  "docker build --platform linux/amd64 -t ghcr.io/felixandersen/sneak-link:dev .",
+  "docker save ghcr.io/felixandersen/sneak-link:dev | ssh -C $DEV_SSH_HOST docker load"
+]
