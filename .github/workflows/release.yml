@@ -30,3 +30,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx semantic-release
+      - name: Install mise
+        uses: jdx/mise-action@v2
+        with:
+          install: false # no need to install node, we only need mise for task running
+      - run: mise run build_image
+      - run: mise run push_image
+        env:
+          CR_PAT: ${{ secrets.CR_PAT }}
