@@ -39,3 +39,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Node.js dependencies for release tooling
+node_modules
