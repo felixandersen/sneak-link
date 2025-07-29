@@ -17,8 +17,8 @@
       [
         "@semantic-release/exec",
         {
-          "successCmd": "git status",
-          "prepareCmd": "echo ${nextRelease.version} >! VERSION"
+          "prepareCmd": "rm VERSION && echo ${nextRelease.version} > VERSION",
+          "successCmd": "git status"
         }
       ],
       [
