@@ -14,17 +14,17 @@ import (
 )
 
 type Handler struct {
-	config      *config.Config
-	proxy       *proxy.ReverseProxy
-	rateLimiter *ratelimit.RateLimiter
+	config       *config.Config
+	proxyManager *proxy.ProxyManager
+	rateLimiter  *ratelimit.RateLimiter
 }
 
 // NewHandler creates a new request handler
-func NewHandler(cfg *config.Config, rp *proxy.ReverseProxy, rl *ratelimit.RateLimiter) *Handler {
+func NewHandler(cfg *config.Config, pm *proxy.ProxyManager, rl *ratelimit.RateLimiter) *Handler {
 	return &Handler{
-		config:      cfg,
-		proxy:       rp,
-		rateLimiter: rl,
+		config:       cfg,
+		proxyManager: pm,
+		rateLimiter:  rl,
 	}
 }
 
@@ -33,11 +33,19 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	clientIP := getClientIP(r)
 
+	// Get the service proxy for this hostname
+	serviceProxy := h.proxyManager.GetProxy(r.Host)
+	if serviceProxy == nil {
+		http.Error(w, "Service Not Found", http.StatusNotFound)
+		logger.LogAccess(clientIP, r.Method, r.URL.Path, http.StatusNotFound, time.Since(start))
+		return
+	}
+
 	// Check if user already has a valid token first
 	if cookie, err := r.Cookie("sneak-link-token"); err == nil {
 		if _, err := auth.ValidateToken(cookie.Value, h.config.SigningKey); err == nil {
 			// Valid token - proxy the request without rate limiting
-			h.proxy.ServeHTTP(w, r)
+			serviceProxy.ServeHTTP(w, r)
 			logger.LogAccess(clientIP, r.Method, r.URL.Path, http.StatusOK, time.Since(start))
 			return
 		} else {
@@ -46,8 +54,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Check if this is a NextCloud share path (URL knock)
-	if strings.HasPrefix(r.URL.Path, "/s/") {
+	// Check if this is a share path for this service
+	if h.isSharePath(r.URL.Path, serviceProxy.GetServiceConfig()) {
 		// No valid token - apply rate limiting for unauthenticated requests
 		if !h.rateLimiter.IsAllowed(clientIP) {
 			logger.LogSecurity("rate_limit_exceeded", clientIP, 
@@ -60,7 +68,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.handleShareKnock(w, r, clientIP, start)
+		h.handleShareKnock(w, r, clientIP, start, serviceProxy)
 		return
 	}
 
@@ -69,12 +77,28 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger.LogAccess(clientIP, r.Method, r.URL.Path, http.StatusForbidden, time.Since(start))
 }
 
-// handleShareKnock processes NextCloud share URL knocks
-func (h *Handler) handleShareKnock(w http.ResponseWriter, r *http.Request, clientIP string, start time.Time) {
-	sharePath := r.URL.Path
+// isSharePath checks if the given path is a share path for the service
+func (h *Handler) isSharePath(path string, serviceConfig *config.ServiceConfig) bool {
+	serviceType, exists := config.SupportedServices[serviceConfig.Type]
+	if !exists {
+		return false
+	}
 
-	// Validate the share with NextCloud backend
-	valid, status, err := h.proxy.ValidateShare(sharePath)
+	for _, sharePath := range serviceType.SharePaths {
+		if strings.HasPrefix(path, sharePath) {
+			return true
+		}
+	}
+	return false
+}
+
+// handleShareKnock processes share URL knocks for any service
+func (h *Handler) handleShareKnock(w http.ResponseWriter, r *http.Request, clientIP string, start time.Time, serviceProxy *proxy.ServiceProxy) {
+	sharePath := r.URL.Path
+	serviceConfig := serviceProxy.GetServiceConfig()
+
+	// Validate the share with the service backend
+	valid, status, err := serviceProxy.ValidateShare(sharePath)
 	if err != nil {
 		logger.Log.WithError(err).Error("Failed to validate share")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -87,7 +111,7 @@ func (h *Handler) handleShareKnock(w http.ResponseWriter, r *http.Request, clien
 	if !valid {
 		// Share doesn't exist or is invalid
 		if status == http.StatusNotFound {
-			logger.LogSecurity("invalid_share_attempt", clientIP, fmt.Sprintf("share: %s", sharePath))
+			logger.LogSecurity("invalid_share_attempt", clientIP, fmt.Sprintf("share: %s, service: %s", sharePath, serviceConfig.Type))
 		}
 		http.Error(w, "Not Found", http.StatusNotFound)
 		logger.LogAccess(clientIP, r.Method, sharePath, http.StatusNotFound, time.Since(start))
@@ -103,11 +127,11 @@ func (h *Handler) handleShareKnock(w http.ResponseWriter, r *http.Request, clien
 		return
 	}
 
-	// Set secure cookie
+	// Set secure cookie with service-specific domain
 	cookie := &http.Cookie{
 		Name:     "sneak-link-token",
 		Value:    token,
-		Domain:   h.config.NextCloudDomain,
+		Domain:   serviceConfig.Domain,
 		Path:     "/",
 		MaxAge:   int(h.config.CookieMaxAge.Seconds()),
 		HttpOnly: true,
@@ -116,10 +140,10 @@ func (h *Handler) handleShareKnock(w http.ResponseWriter, r *http.Request, clien
 	}
 	http.SetCookie(w, cookie)
 
-	logger.LogSecurity("access_granted", clientIP, fmt.Sprintf("share: %s", sharePath))
+	logger.LogSecurity("access_granted", clientIP, fmt.Sprintf("share: %s, service: %s", sharePath, serviceConfig.Type))
 
-	// Proxy the original request to NextCloud
-	h.proxy.ServeHTTP(w, r)
+	// Proxy the original request to the service
+	serviceProxy.ServeHTTP(w, r)
 	logger.LogAccess(clientIP, r.Method, sharePath, http.StatusOK, time.Since(start))
 }
 

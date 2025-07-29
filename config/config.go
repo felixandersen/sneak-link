@@ -8,33 +8,61 @@ import (
 	"time"
 )
 
+type ServiceType struct {
+	Name           string
+	SharePaths     []string
+	ValidateMethod string
+}
+
+var SupportedServices = map[string]ServiceType{
+	"nextcloud": {Name: "nextcloud", SharePaths: []string{"/s/"}, ValidateMethod: "head"},
+	"immich":    {Name: "immich", SharePaths: []string{"/share/"}, ValidateMethod: "immichApi"},
+}
+
+type ServiceConfig struct {
+	Type   string
+	URL    string
+	Domain string
+}
+
 type Config struct {
-	NextCloudURL       string
-	NextCloudDomain    string
-	ListenPort         string
-	CookieMaxAge       time.Duration
-	RateLimitRequests  int
-	RateLimitWindow    time.Duration
-	LogLevel           string
-	SigningKey         []byte
+	Services          map[string]*ServiceConfig // key = request hostname
+	ListenPort        string
+	CookieMaxAge      time.Duration
+	RateLimitRequests int
+	RateLimitWindow   time.Duration
+	LogLevel          string
+	SigningKey        []byte
 }
 
 func Load() (*Config, error) {
-	// Required environment variables
-	nextCloudURL := os.Getenv("NEXTCLOUD_URL")
-	if nextCloudURL == "" {
-		return nil, fmt.Errorf("NEXTCLOUD_URL environment variable is required")
+	services := make(map[string]*ServiceConfig)
+
+	// Check for NextCloud
+	if nextcloudURL := os.Getenv("NEXTCLOUD_URL"); nextcloudURL != "" {
+		config, err := parseServiceConfig("nextcloud", nextcloudURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid NEXTCLOUD_URL: %v", err)
+		}
+		services[config.Domain] = config
+	}
+
+	// Check for Immich
+	if immichURL := os.Getenv("IMMICH_URL"); immichURL != "" {
+		config, err := parseServiceConfig("immich", immichURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid IMMICH_URL: %v", err)
+		}
+		services[config.Domain] = config
+	}
+
+	if len(services) == 0 {
+		return nil, fmt.Errorf("at least one service URL must be configured (NEXTCLOUD_URL or IMMICH_URL)")
 	}
 
 	signingKey := os.Getenv("SIGNING_KEY")
 	if signingKey == "" {
 		return nil, fmt.Errorf("SIGNING_KEY environment variable is required")
-	}
-
-	// Parse domain from NextCloud URL
-	parsedURL, err := url.Parse(nextCloudURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid NEXTCLOUD_URL: %v", err)
 	}
 
 	// Optional environment variables with defaults
@@ -61,14 +89,26 @@ func Load() (*Config, error) {
 	logLevel := getEnvWithDefault("LOG_LEVEL", "info")
 
 	return &Config{
-		NextCloudURL:       nextCloudURL,
-		NextCloudDomain:    parsedURL.Hostname(),
-		ListenPort:         listenPort,
-		CookieMaxAge:       time.Duration(cookieMaxAge) * time.Second,
-		RateLimitRequests:  rateLimitRequests,
-		RateLimitWindow:    time.Duration(rateLimitWindow) * time.Second,
-		LogLevel:           logLevel,
-		SigningKey:         []byte(signingKey),
+		Services:          services,
+		ListenPort:        listenPort,
+		CookieMaxAge:      time.Duration(cookieMaxAge) * time.Second,
+		RateLimitRequests: rateLimitRequests,
+		RateLimitWindow:   time.Duration(rateLimitWindow) * time.Second,
+		LogLevel:          logLevel,
+		SigningKey:        []byte(signingKey),
+	}, nil
+}
+
+func parseServiceConfig(serviceType, serviceURL string) (*ServiceConfig, error) {
+	parsedURL, err := url.Parse(serviceURL)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ServiceConfig{
+		Type:   serviceType,
+		URL:    serviceURL,
+		Domain: parsedURL.Hostname(),
 	}, nil
 }
 
