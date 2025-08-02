@@ -9,14 +9,16 @@ import (
 )
 
 type ServiceType struct {
-	Name           string
-	SharePaths     []string
-	ValidateMethod string
+	Name                 string
+	SharePaths           []string
+	ValidateMethod       string
+	FullAccessAfterKnock bool // true: set cookie for full app access, false: direct proxy without session
 }
 
 var SupportedServices = map[string]ServiceType{
-	"nextcloud": {Name: "nextcloud", SharePaths: []string{"/s/"}, ValidateMethod: "head"},
-	"immich":    {Name: "immich", SharePaths: []string{"/share/"}, ValidateMethod: "immichApi"},
+	"nextcloud": {Name: "nextcloud", SharePaths: []string{"/s/"}, ValidateMethod: "head", FullAccessAfterKnock: true},
+	"immich":    {Name: "immich", SharePaths: []string{"/share/"}, ValidateMethod: "immichApi", FullAccessAfterKnock: true},
+	"paperless": {Name: "paperless", SharePaths: []string{"/share/"}, ValidateMethod: "head", FullAccessAfterKnock: false},
 }
 
 type ServiceConfig struct {
@@ -56,8 +58,17 @@ func Load() (*Config, error) {
 		services[config.Domain] = config
 	}
 
+	// Check for Paperless-ngx
+	if paperlessURL := os.Getenv("PAPERLESS_URL"); paperlessURL != "" {
+		config, err := parseServiceConfig("paperless", paperlessURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid PAPERLESS_URL: %v", err)
+		}
+		services[config.Domain] = config
+	}
+
 	if len(services) == 0 {
-		return nil, fmt.Errorf("at least one service URL must be configured (NEXTCLOUD_URL or IMMICH_URL)")
+		return nil, fmt.Errorf("at least one service URL must be configured (NEXTCLOUD_URL, IMMICH_URL, or PAPERLESS_URL)")
 	}
 
 	signingKey := os.Getenv("SIGNING_KEY")

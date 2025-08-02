@@ -41,22 +41,32 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user already has a valid token first
-	if cookie, err := r.Cookie("sneak-link-token"); err == nil {
-		if _, err := auth.ValidateToken(cookie.Value, h.config.SigningKey); err == nil {
-			// Valid token - proxy the request without rate limiting
-			serviceProxy.ServeHTTP(w, r)
-			logger.LogAccess(clientIP, r.Method, r.URL.Path, http.StatusOK, time.Since(start))
-			return
-		} else {
-			// Invalid token - log security event
-			logger.LogSecurity("invalid_token", clientIP, err.Error())
+	// Get service type configuration
+	serviceType, exists := config.SupportedServices[serviceProxy.GetServiceConfig().Type]
+	if !exists {
+		http.Error(w, "Unsupported Service", http.StatusInternalServerError)
+		logger.LogAccess(clientIP, r.Method, r.URL.Path, http.StatusInternalServerError, time.Since(start))
+		return
+	}
+
+	// For services with full access after knock, check for valid token
+	if serviceType.FullAccessAfterKnock {
+		if cookie, err := r.Cookie("sneak-link-token"); err == nil {
+			if _, err := auth.ValidateToken(cookie.Value, h.config.SigningKey); err == nil {
+				// Valid token - proxy the request without rate limiting
+				serviceProxy.ServeHTTP(w, r)
+				logger.LogAccess(clientIP, r.Method, r.URL.Path, http.StatusOK, time.Since(start))
+				return
+			} else {
+				// Invalid token - log security event
+				logger.LogSecurity("invalid_token", clientIP, err.Error())
+			}
 		}
 	}
 
 	// Check if this is a share path for this service
-	if h.isSharePath(r.URL.Path, serviceProxy.GetServiceConfig()) {
-		// No valid token - apply rate limiting for unauthenticated requests
+	if h.isSharePath(r.URL.Path, serviceType) {
+		// Apply rate limiting for unauthenticated requests
 		if !h.rateLimiter.IsAllowed(clientIP) {
 			logger.LogSecurity("rate_limit_exceeded", clientIP, 
 				fmt.Sprintf("requests: %d, window: %v", 
@@ -68,22 +78,24 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.handleShareKnock(w, r, clientIP, start, serviceProxy)
+		h.handleShareKnock(w, r, clientIP, start, serviceProxy, serviceType)
 		return
 	}
 
-	// No valid token and not a share path - deny access
+	// For services without full access after knock, deny all non-share paths
+	if !serviceType.FullAccessAfterKnock {
+		http.Error(w, "Access Denied", http.StatusForbidden)
+		logger.LogAccess(clientIP, r.Method, r.URL.Path, http.StatusForbidden, time.Since(start))
+		return
+	}
+
+	// For services with full access after knock, deny access without valid token
 	http.Error(w, "Access Denied", http.StatusForbidden)
 	logger.LogAccess(clientIP, r.Method, r.URL.Path, http.StatusForbidden, time.Since(start))
 }
 
 // isSharePath checks if the given path is a share path for the service
-func (h *Handler) isSharePath(path string, serviceConfig *config.ServiceConfig) bool {
-	serviceType, exists := config.SupportedServices[serviceConfig.Type]
-	if !exists {
-		return false
-	}
-
+func (h *Handler) isSharePath(path string, serviceType config.ServiceType) bool {
 	for _, sharePath := range serviceType.SharePaths {
 		if strings.HasPrefix(path, sharePath) {
 			return true
@@ -92,8 +104,9 @@ func (h *Handler) isSharePath(path string, serviceConfig *config.ServiceConfig) 
 	return false
 }
 
+
 // handleShareKnock processes share URL knocks for any service
-func (h *Handler) handleShareKnock(w http.ResponseWriter, r *http.Request, clientIP string, start time.Time, serviceProxy *proxy.ServiceProxy) {
+func (h *Handler) handleShareKnock(w http.ResponseWriter, r *http.Request, clientIP string, start time.Time, serviceProxy *proxy.ServiceProxy, serviceType config.ServiceType) {
 	sharePath := r.URL.Path
 	serviceConfig := serviceProxy.GetServiceConfig()
 
@@ -118,27 +131,29 @@ func (h *Handler) handleShareKnock(w http.ResponseWriter, r *http.Request, clien
 		return
 	}
 
-	// Share is valid - generate and set authentication token
-	token, err := auth.GenerateToken(h.config.CookieMaxAge, h.config.SigningKey)
-	if err != nil {
-		logger.Log.WithError(err).Error("Failed to generate token")
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		logger.LogAccess(clientIP, r.Method, sharePath, http.StatusInternalServerError, time.Since(start))
-		return
-	}
+	// For services with full access after knock, generate and set authentication token
+	if serviceType.FullAccessAfterKnock {
+		token, err := auth.GenerateToken(h.config.CookieMaxAge, h.config.SigningKey)
+		if err != nil {
+			logger.Log.WithError(err).Error("Failed to generate token")
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			logger.LogAccess(clientIP, r.Method, sharePath, http.StatusInternalServerError, time.Since(start))
+			return
+		}
 
-	// Set secure cookie with service-specific domain
-	cookie := &http.Cookie{
-		Name:     "sneak-link-token",
-		Value:    token,
-		Domain:   serviceConfig.Domain,
-		Path:     "/",
-		MaxAge:   int(h.config.CookieMaxAge.Seconds()),
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteLaxMode,
+		// Set secure cookie with service-specific domain
+		cookie := &http.Cookie{
+			Name:     "sneak-link-token",
+			Value:    token,
+			Domain:   serviceConfig.Domain,
+			Path:     "/",
+			MaxAge:   int(h.config.CookieMaxAge.Seconds()),
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteLaxMode,
+		}
+		http.SetCookie(w, cookie)
 	}
-	http.SetCookie(w, cookie)
 
 	logger.LogSecurity("access_granted", clientIP, fmt.Sprintf("share: %s, service: %s", sharePath, serviceConfig.Type))
 

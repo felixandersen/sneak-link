@@ -3,7 +3,7 @@
 A lightweight, open‑source tool for secure link-based access control.  
 After verifying a URL "knock" on a shared link, Sneak Link issues a cookie that grants access to a protected service. No IP whitelisting required.
 
-**Supports NextCloud and Immich**, other services could be supported in the future.
+**Supports NextCloud, Immich, and Paperless-ngx**, with extensible architecture for additional services.
 
 ## Key features
 - URL‑knocking trigger to initiate and verify access
@@ -29,10 +29,12 @@ You run multiple self-hosted services on your home lab network that you want to 
 1. **Share creation**: You create share links in your services:
    - NextCloud: `/s/AbCdEf123` (files/folders)
    - Immich: `/share/XyZ789` (photo albums)
+   - Paperless-ngx: `/share/secret123` (documents, restricted access)
 
 2. **URL knocking**: You send the complete URL to someone who needs access:
    - `https://cloud.yourdomain.com/s/AbCdEf123`
    - `https://photos.yourdomain.com/share/XyZ789`
+   - `https://paperless.yourdomain.com/share/secret123`
 
 3. **Validation**: When they visit the link:
    - sneak-link receives the request and identifies the service by hostname
@@ -41,9 +43,9 @@ You run multiple self-hosted services on your home lab network that you want to 
    - Rate limiting prevents brute force attempts on share URLs
 
 4. **Access granted**: For valid shares:
-   - sneak-link issues a service-specific cookie containing an access token
+   - NextCloud/Immich: sneak-link issues a service-specific cookie for full app access
+   - Paperless-ngx: Direct proxy without cookies (single-request access only)
    - User is transparently proxied to your service instance
-   - Subsequent requests use the cookie for authentication
 
 ### Security benefits
 
@@ -76,6 +78,7 @@ This approach provides secure, link-based access to your NextCloud and Immich in
      -p 8080:8080 \
      -e NEXTCLOUD_URL=https://cloud.yourdomain.com \
      -e IMMICH_URL=https://photos.yourdomain.com \
+     -e PAPERLESS_URL=https://paperless.yourdomain.com \
      -e SIGNING_KEY=$SIGNING_KEY \
      ghcr.io/felixandersen/sneak-link:latest
    ```
@@ -94,6 +97,7 @@ That's it!
 |----------|----------|---------|-------------|
 | `NEXTCLOUD_URL` | No* | - | NextCloud instance URL (share URLs: `/s/*`) |
 | `IMMICH_URL` | No* | - | Immich instance URL (share URLs: `/share/*`) |
+| `PAPERLESS_URL` | No* | - | Paperless-ngx instance URL (share URLs: `/share/*`, no session cookies) |
 | `SIGNING_KEY` | Yes | - | Secret key for signing authentication tokens |
 | `LISTEN_PORT` | No | 8080 | Port for the HTTP server |
 | `COOKIE_MAX_AGE` | No | 86400 | Cookie expiration time in seconds |
