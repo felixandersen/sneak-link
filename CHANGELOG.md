@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/felixandersen/sneak-link/compare/v1.0.0...v1.1.0) (2025-08-02)
+
+
+### Features
+
+* Sneak Link now supports Paperless. Identical setup as for NextCloud and Immich using env var PAPERLESS_URL ([f3e7460](https://github.com/felixandersen/sneak-link/commit/f3e74608ff2f3d6e25fda2b8b7fcbaecf42e5b7e))
+
 # 1.0.0 (2025-07-29)
 
 
