@@ -7,8 +7,10 @@ After verifying a URL "knock" on a shared link, Sneak Link issues a cookie that 
 
 ## Key features
 - URL‑knocking trigger to initiate and verify access
-- Token stored in cookie for session validation
+- Token stored in cookie for session validation*
 - Minimal dependencies. Easy to set up.
+
+*Paperless serves the document directly on the share URL no session is granted, direct access restricted to paths with /share/-prefix
 
 ## Usage scenario
 
@@ -27,9 +29,9 @@ You run multiple self-hosted services on your home lab network that you want to 
 ### Access flow
 
 1. **Share creation**: You create share links in your services:
-   - NextCloud: `/s/AbCdEf123` (files/folders)
-   - Immich: `/share/XyZ789` (photo albums)
-   - Paperless-ngx: `/share/secret123` (documents, restricted access)
+   - NextCloud: `/s/AbCdEf123`
+   - Immich: `/share/XyZ789`
+   - Paperless-ngx: `/share/secret123`
 
 2. **URL knocking**: You send the complete URL to someone who needs access:
    - `https://cloud.yourdomain.com/s/AbCdEf123`
@@ -60,7 +62,7 @@ This approach provides secure, link-based access to your NextCloud and Immich in
 ## Quick Start
 
 ### Prerequisites
-- NextCloud and/or Immich instance running on your private network
+- NextCloud, Immich and/or Paperless instance running on your private network
 - Domain name with split-brain DNS control
 - Docker installed
 
@@ -95,9 +97,9 @@ That's it!
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `NEXTCLOUD_URL` | No* | - | NextCloud instance URL (share URLs: `/s/*`) |
-| `IMMICH_URL` | No* | - | Immich instance URL (share URLs: `/share/*`) |
-| `PAPERLESS_URL` | No* | - | Paperless-ngx instance URL (share URLs: `/share/*`, no session cookies) |
+| `NEXTCLOUD_URL` | No* | - | NextCloud instance URL |
+| `IMMICH_URL` | No* | - | Immich instance URL |
+| `PAPERLESS_URL` | No* | - | Paperless-ngx instance URL |
 | `SIGNING_KEY` | Yes | - | Secret key for signing authentication tokens |
 | `LISTEN_PORT` | No | 8080 | Port for the HTTP server |
 | `COOKIE_MAX_AGE` | No | 86400 | Cookie expiration time in seconds |
