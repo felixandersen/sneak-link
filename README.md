@@ -14,29 +14,29 @@ After verifying a URL "knock" on a shared link, Sneak Link issues a cookie that 
 
 *Paperless serves the document directly on the share URL - no session is granted, direct access restricted to paths with /share/-prefix
 
-### **Built-in Observability**
+### **Built-in observability**
 - **Real-time web dashboard** with system metrics and analytics
 - **Prometheus metrics endpoint** for monitoring integration
 - **Historical data tracking** with SQLite persistence
 - **Session analytics** and request logging
 
-### **Easy Deployment**
+### **Easy deployment**
 - Minimal dependencies and simple setup
 - Docker support with pre-built images
 - Extensible architecture for additional services
 
-## Dashboard & Monitoring
+## Dashboard and metrics
 
 Sneak Link includes a simple monitoring dashboard that provides real-time insights into your system's performance, security events, and user activity.
 
 ![Sneak Link Dashboard](dashboard-screenshot.png)
 
-**Dashboard Features:**
+**Dashboard features:**
 - Real-time system metrics
 - Active session tracking with geolocation data
 - Dark/light mode support for comfortable viewing
 
-**Prometheus Integration:**
+**Prometheus integration:**
 - Standard Prometheus metrics format at `/metrics` endpoint
 - HTTP request metrics (count, duration, status codes)
 - Security and rate limiting metrics
@@ -91,7 +91,7 @@ You run multiple self-hosted services on your home lab network that you want to 
 
 This approach provides secure, link-based access to your NextCloud and Immich instances without exposing your private services directly to the internet.
 
-## Quick Start
+## Quick start
 
 ### Prerequisites
 - NextCloud, Immich and/or Paperless instance running on your private network
@@ -128,7 +128,7 @@ That's it!
 
 ## Configuration
 
-### Environment Variables
+### Environment variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
@@ -148,7 +148,7 @@ That's it!
 
 *At least one service URL must be configured
 
-### Observability Endpoints
+### Observability endpoints
 
 - **Dashboard**: `http://your-host:3000/` - Web interface for monitoring and analytics
 - **Metrics**: `http://your-host:9090/metrics` - Prometheus-compatible metrics endpoint
