@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/felixandersen/sneak-link/compare/v1.1.0...v1.2.0) (2025-08-31)
+
+
+### Features
+
+* new prometheus metrics endpoint and dashboard, sqlite persistence ([2ee483e](https://github.com/felixandersen/sneak-link/commit/2ee483ebc78fa303cbf2ce9e783ada03a46c3577))
+
 # [1.1.0](https://github.com/felixandersen/sneak-link/compare/v1.0.0...v1.1.0) (2025-08-02)
 
 
