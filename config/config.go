@@ -30,11 +30,15 @@ type ServiceConfig struct {
 type Config struct {
 	Services          map[string]*ServiceConfig // key = request hostname
 	ListenPort        string
+	MetricsPort       string
+	DashboardPort     string
+	DatabasePath      string
 	CookieMaxAge      time.Duration
 	RateLimitRequests int
 	RateLimitWindow   time.Duration
 	LogLevel          string
 	SigningKey        []byte
+	MetricsRetentionDays int
 }
 
 func Load() (*Config, error) {
@@ -78,6 +82,9 @@ func Load() (*Config, error) {
 
 	// Optional environment variables with defaults
 	listenPort := getEnvWithDefault("LISTEN_PORT", "8080")
+	metricsPort := getEnvWithDefault("METRICS_PORT", "9090")
+	dashboardPort := getEnvWithDefault("DASHBOARD_PORT", "3000")
+	databasePath := getEnvWithDefault("DB_PATH", "/data/sneak-link.db")
 	
 	cookieMaxAgeStr := getEnvWithDefault("COOKIE_MAX_AGE", "86400") // 24 hours
 	cookieMaxAge, err := strconv.Atoi(cookieMaxAgeStr)
@@ -97,16 +104,26 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid RATE_LIMIT_WINDOW: %v", err)
 	}
 
+	metricsRetentionStr := getEnvWithDefault("METRICS_RETENTION_DAYS", "30")
+	metricsRetention, err := strconv.Atoi(metricsRetentionStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid METRICS_RETENTION_DAYS: %v", err)
+	}
+
 	logLevel := getEnvWithDefault("LOG_LEVEL", "info")
 
 	return &Config{
-		Services:          services,
-		ListenPort:        listenPort,
-		CookieMaxAge:      time.Duration(cookieMaxAge) * time.Second,
-		RateLimitRequests: rateLimitRequests,
-		RateLimitWindow:   time.Duration(rateLimitWindow) * time.Second,
-		LogLevel:          logLevel,
-		SigningKey:        []byte(signingKey),
+		Services:             services,
+		ListenPort:           listenPort,
+		MetricsPort:          metricsPort,
+		DashboardPort:        dashboardPort,
+		DatabasePath:         databasePath,
+		CookieMaxAge:         time.Duration(cookieMaxAge) * time.Second,
+		RateLimitRequests:    rateLimitRequests,
+		RateLimitWindow:      time.Duration(rateLimitWindow) * time.Second,
+		LogLevel:             logLevel,
+		SigningKey:           []byte(signingKey),
+		MetricsRetentionDays: metricsRetention,
 	}, nil
 }
 

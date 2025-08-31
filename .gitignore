@@ -42,3 +42,4 @@ Thumbs.db
 
 # Node.js dependencies for release tooling
 node_modules
+data/*

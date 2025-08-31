@@ -7,10 +7,14 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"sneak-link/config"
+	"sneak-link/dashboard"
+	"sneak-link/database"
 	"sneak-link/handlers"
 	"sneak-link/logger"
+	"sneak-link/metrics"
 	"sneak-link/proxy"
 	"sneak-link/ratelimit"
 )
@@ -34,6 +38,16 @@ func main() {
 	logger.Init(cfg.LogLevel)
 	logger.Log.WithField("version", version).Info("Starting Sneak Link server")
 
+	// Initialize database
+	db, err := database.New(cfg.DatabasePath)
+	if err != nil {
+		logger.Log.WithError(err).Fatal("Failed to initialize database")
+	}
+	defer db.Close()
+
+	// Initialize metrics collector
+	collector := metrics.NewCollector(db)
+
 	// Create proxy manager for all services
 	pm, err := proxy.NewProxyManager(cfg.Services)
 	if err != nil {
@@ -43,18 +57,45 @@ func main() {
 	// Create rate limiter
 	rl := ratelimit.NewRateLimiter(cfg.RateLimitRequests, cfg.RateLimitWindow)
 
-	// Create main handler
-	handler := handlers.NewHandler(cfg, pm, rl)
+	// Create main handler with metrics integration
+	handler := handlers.NewHandler(cfg, pm, rl, collector)
 
-	// Create HTTP server
+	// Start metrics server (Prometheus endpoint)
+	go func() {
+		if err := metrics.StartMetricsServer(cfg.MetricsPort, collector); err != nil {
+			logger.Log.WithError(err).Fatal("Failed to start metrics server")
+		}
+	}()
+
+	// Start dashboard server
+	dashboardServer := dashboard.NewServer(db, collector)
+	go func() {
+		if err := dashboardServer.Start(cfg.DashboardPort); err != nil {
+			logger.Log.WithError(err).Fatal("Failed to start dashboard server")
+		}
+	}()
+
+	// Start cleanup routine for old data
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+		
+		for range ticker.C {
+			if err := db.CleanupOldData(cfg.MetricsRetentionDays); err != nil {
+				logger.Log.WithError(err).Error("Failed to cleanup old data")
+			}
+		}
+	}()
+
+	// Create main HTTP server
 	server := &http.Server{
 		Addr:    ":" + cfg.ListenPort,
 		Handler: handler,
 	}
 
-	// Start server in a goroutine
+	// Start main server in a goroutine
 	go func() {
-		logger.Log.WithField("port", cfg.ListenPort).Info("Server starting")
+		logger.Log.WithField("port", cfg.ListenPort).Info("Main server starting")
 		
 		// Log all configured services
 		for hostname, serviceConfig := range cfg.Services {
@@ -63,6 +104,10 @@ func main() {
 				WithField("backend_url", serviceConfig.URL).
 				Info("Service configured")
 		}
+		
+		// Log observability endpoints
+		logger.Log.WithField("metrics_port", cfg.MetricsPort).Info("Metrics endpoint available at /metrics")
+		logger.Log.WithField("dashboard_port", cfg.DashboardPort).Info("Dashboard available at /")
 		
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Log.WithError(err).Fatal("Server failed to start")

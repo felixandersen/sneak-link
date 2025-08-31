@@ -1,5 +1,8 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
+
+# Install build dependencies for CGO and SQLite
+RUN apk add --no-cache gcc musl-dev sqlite-dev
 
 WORKDIR /app
 
@@ -12,8 +15,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o sneak-link .
+# Build the application with CGO enabled
+ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
+RUN CGO_ENABLED=1 GOOS=linux go build -a -tags "sqlite_omit_load_extension" -o sneak-link .
 
 # Final stage
 FROM alpine:latest
@@ -28,6 +32,8 @@ COPY --from=builder /app/sneak-link .
 
 # Expose port
 EXPOSE 8080
+EXPOSE 3000
+EXPOSE 9090
 
 # Run the application
 CMD ["./sneak-link"]
