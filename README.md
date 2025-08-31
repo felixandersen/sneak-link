@@ -1,16 +1,48 @@
 # Sneak Link
 
-A lightweight, open‑source tool for secure link-based access control.  
+A lightweight, open‑source tool for secure link-based access control with **built-in observability and monitoring features**.  
 After verifying a URL "knock" on a shared link, Sneak Link issues a cookie that grants access to a protected service. No IP whitelisting required.
 
 **Supports NextCloud, Immich, and Paperless-ngx**, with extensible architecture for additional services.
 
 ## Key features
+
 - URL‑knocking trigger to initiate and verify access
 - Token stored in cookie for session validation*
-- Minimal dependencies. Easy to set up.
+- Rate limiting and security event tracking
+- No IP whitelisting required
 
-*Paperless serves the document directly on the share URL no session is granted, direct access restricted to paths with /share/-prefix
+*Paperless serves the document directly on the share URL - no session is granted, direct access restricted to paths with /share/-prefix
+
+### **Built-in Observability**
+- **Real-time web dashboard** with system metrics and analytics
+- **Prometheus metrics endpoint** for monitoring integration
+- **Historical data tracking** with SQLite persistence
+- **Session analytics** and request logging
+
+### **Easy Deployment**
+- Minimal dependencies and simple setup
+- Docker support with pre-built images
+- Extensible architecture for additional services
+
+## Dashboard & Monitoring
+
+Sneak Link includes a simple monitoring dashboard that provides real-time insights into your system's performance, security events, and user activity.
+
+![Sneak Link Dashboard](dashboard-screenshot.png)
+
+**Dashboard Features:**
+- Real-time system metrics
+- Active session tracking with geolocation data
+- Dark/light mode support for comfortable viewing
+
+**Prometheus Integration:**
+- Standard Prometheus metrics format at `/metrics` endpoint
+- HTTP request metrics (count, duration, status codes)
+- Security and rate limiting metrics
+- Service-specific validation tracking
+- System uptime and performance monitoring
+- Ready for Grafana dashboards and alerting
 
 ## Usage scenario
 
@@ -78,6 +110,9 @@ This approach provides secure, link-based access to your NextCloud and Immich in
    docker run -d \
      --name sneak-link \
      -p 8080:8080 \
+     -p 9090:9090 \
+     -p 3000:3000 \
+     -v sneak-link-data:/data \
      -e NEXTCLOUD_URL=https://cloud.yourdomain.com \
      -e IMMICH_URL=https://photos.yourdomain.com \
      -e PAPERLESS_URL=https://paperless.yourdomain.com \
@@ -87,7 +122,7 @@ This approach provides secure, link-based access to your NextCloud and Immich in
 
 3. Configure your reverse proxy to forward public HTTPS traffic to port 8080
 
-**Note**: sneak-link runs on HTTP internally (port 8080). A reverse proxy (nginx, Caddy, Traefik, etc.) must handle HTTPS termination and forward HTTP traffic to sneak-link.
+**Note**: sneak-link runs the proxy service on HTTP internally (port 8080). A reverse proxy (nginx, Caddy, Traefik, etc.) must handle HTTPS termination and forward HTTP traffic to sneak-link.
 
 That's it!
 
@@ -106,8 +141,20 @@ That's it!
 | `RATE_LIMIT_REQUESTS` | No | 10 | Maximum requests per IP per window |
 | `RATE_LIMIT_WINDOW` | No | 300 | Rate limiting window in seconds |
 | `LOG_LEVEL` | No | info | Log level (debug, info, warn, error) |
+| `METRICS_PORT` | No | 9090 | Port for Prometheus metrics endpoint |
+| `DASHBOARD_PORT` | No | 3000 | Port for web dashboard |
+| `DB_PATH` | No | /data/sneak-link.db | SQLite database path for metrics storage |
+| `METRICS_RETENTION_DAYS` | No | 30 | Data retention period in days |
 
 *At least one service URL must be configured
+
+### Observability Endpoints
+
+- **Dashboard**: `http://your-host:3000/` - Web interface for monitoring and analytics
+- **Metrics**: `http://your-host:9090/metrics` - Prometheus-compatible metrics endpoint
+- **Health Check**: `http://your-host:9090/health` - Service health status
+
+The SQLite database stores historical data at the configured `DB_PATH` and can be mounted as a volume in Docker for persistence.
 
 ## Security considerations
 
