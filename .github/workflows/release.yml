@@ -2,7 +2,7 @@ name: Release
 on:
   push:
     branches:
-      - develop # or main
+      - main # or main
 
 permissions:
   contents: read # for checkout
