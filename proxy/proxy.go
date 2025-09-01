@@ -99,6 +99,7 @@ func (sp *ServiceProxy) ValidateShare(sharePath string) (bool, int, error) {
 // validateByHead validates share by making a HEAD request to the share path
 func (sp *ServiceProxy) validateByHead(sharePath string) (bool, int, error) {
 	shareURL := sp.target.ResolveReference(&url.URL{Path: sharePath})
+
 	resp, err := http.Head(shareURL.String())
 	if err != nil {
 		return false, 0, err
