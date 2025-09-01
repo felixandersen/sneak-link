@@ -16,6 +16,7 @@ type ServiceType struct {
 }
 
 var SupportedServices = map[string]ServiceType{
+	"seafile": {Name: "seafile", SharePaths: []string{"/f/", "/d/"}, ValidateMethod: "head", FullAccessAfterKnock: true},
 	"nextcloud": {Name: "nextcloud", SharePaths: []string{"/s/"}, ValidateMethod: "head", FullAccessAfterKnock: true},
 	"immich":    {Name: "immich", SharePaths: []string{"/share/"}, ValidateMethod: "immichApi", FullAccessAfterKnock: true},
 	"paperless": {Name: "paperless", SharePaths: []string{"/share/"}, ValidateMethod: "head", FullAccessAfterKnock: false},
@@ -43,6 +44,15 @@ type Config struct {
 
 func Load() (*Config, error) {
 	services := make(map[string]*ServiceConfig)
+
+	// Check for seafile
+	if seafileURL := os.Getenv("SEAFILE_URL"); seafileURL != "" {
+		config, err := parseServiceConfig("seafile", seafileURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid SEAFILE_URL: %v", err)
+		}
+		services[config.Domain] = config
+	}
 
 	// Check for NextCloud
 	if nextcloudURL := os.Getenv("NEXTCLOUD_URL"); nextcloudURL != "" {
