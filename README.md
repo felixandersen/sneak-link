@@ -3,7 +3,7 @@
 A lightweight, open‑source tool for secure link-based access control with **built-in observability and monitoring features**.  
 After verifying a URL "knock" on a shared link, Sneak Link issues a cookie that grants access to a protected service. No IP whitelisting required.
 
-**Supports NextCloud, Immich, and Paperless-ngx**, with extensible architecture for additional services.
+**Supports NextCloud, Immich, Seafile and Paperless-ngx**, with extensible architecture for additional services.
 
 ## Key features
 
@@ -63,11 +63,13 @@ You run multiple self-hosted services on your home lab network that you want to 
 1. **Share creation**: You create share links in your services:
    - NextCloud: `/s/AbCdEf123`
    - Immich: `/share/XyZ789`
+   - Seafile `"/f/AbCdEf123", "/d/AbCdEf123", "/u/d/AbCdEf123"`
    - Paperless-ngx: `/share/secret123`
 
 2. **URL knocking**: You send the complete URL to someone who needs access:
    - `https://cloud.yourdomain.com/s/AbCdEf123`
    - `https://photos.yourdomain.com/share/XyZ789`
+   - `https://seafile.yourdomain.com/share/XyZ789`
    - `https://paperless.yourdomain.com/share/secret123`
 
 3. **Validation**: When they visit the link:
@@ -77,7 +79,7 @@ You run multiple self-hosted services on your home lab network that you want to 
    - Rate limiting prevents brute force attempts on share URLs
 
 4. **Access granted**: For valid shares:
-   - NextCloud/Immich: sneak-link issues a service-specific cookie for full app access
+   - NextCloud/Immich/Seafile: sneak-link issues a service-specific cookie for full app access
    - Paperless-ngx: Direct proxy without cookies (single-request access only)
    - User is transparently proxied to your service instance
 
@@ -94,7 +96,7 @@ This approach provides secure, link-based access to your NextCloud and Immich in
 ## Quick start
 
 ### Prerequisites
-- NextCloud, Immich and/or Paperless instance running on your private network
+- NextCloud, Immich, Seafile and/or Paperless instance running on your private network
 - Domain name with split-brain DNS control
 - Docker installed
 
@@ -115,6 +117,8 @@ This approach provides secure, link-based access to your NextCloud and Immich in
      -v sneak-link-data:/data \
      -e NEXTCLOUD_URL=https://cloud.yourdomain.com \
      -e IMMICH_URL=https://photos.yourdomain.com \
+     -e SEAFILE_PUBLIC_URL=https://seafile.public.yourdomain.com \
+     -e SEAFILE_PRIVATE_URL=https://seafile.private.yourdomain.com \
      -e PAPERLESS_URL=https://paperless.yourdomain.com \
      -e SIGNING_KEY=$SIGNING_KEY \
      ghcr.io/felixandersen/sneak-link:latest
@@ -134,6 +138,8 @@ That's it!
 |----------|----------|---------|-------------|
 | `NEXTCLOUD_URL` | No* | - | NextCloud instance URL |
 | `IMMICH_URL` | No* | - | Immich instance URL |
+| `SEAFILE_PUBLIC_URL` | No* | - | Seafile url accessible from public |
+| `SEAFILE_PRIVATE_URL` | No* | - | Seafile url accessible from private network |
 | `PAPERLESS_URL` | No* | - | Paperless-ngx instance URL |
 | `SIGNING_KEY` | Yes | - | Secret key for signing authentication tokens |
 | `LISTEN_PORT` | No | 8080 | Port for the HTTP server |

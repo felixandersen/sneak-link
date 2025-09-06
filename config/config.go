@@ -12,10 +12,12 @@ type ServiceType struct {
 	Name                 string
 	SharePaths           []string
 	ValidateMethod       string
+	TextForInvalidShare  *string // text to look for in response body indicating invalid share (for "text" method)
 	FullAccessAfterKnock bool // true: set cookie for full app access, false: direct proxy without session
 }
 
 var SupportedServices = map[string]ServiceType{
+	"seafile": {Name: "seafile", SharePaths: []string{"/f/", "/d/", "/u/d/"}, ValidateMethod: "text", TextForInvalidShare: strPtr("Link does not exist."), FullAccessAfterKnock: true},
 	"nextcloud": {Name: "nextcloud", SharePaths: []string{"/s/"}, ValidateMethod: "head", FullAccessAfterKnock: true},
 	"immich":    {Name: "immich", SharePaths: []string{"/share/"}, ValidateMethod: "immichApi", FullAccessAfterKnock: true},
 	"paperless": {Name: "paperless", SharePaths: []string{"/share/"}, ValidateMethod: "head", FullAccessAfterKnock: false},
@@ -41,8 +43,30 @@ type Config struct {
 	MetricsRetentionDays int
 }
 
+func strPtr(s string) *string {
+    return &s
+}
+
 func Load() (*Config, error) {
 	services := make(map[string]*ServiceConfig)
+
+	// Check for seafile
+	if seafileURL := os.Getenv("SEAFILE_PRIVATE_URL"); seafileURL != "" {
+		config, err := parseServiceConfig("seafile", seafileURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid SEAFILE_URL: %v", err)
+		}
+
+		// Override domain if SEAFILE_PUBLIC_URL is set
+		if os.Getenv("SEAFILE_PUBLIC_URL") != "" {
+			seafilePublicUrl, err := url.Parse(os.Getenv("SEAFILE_PUBLIC_URL"))
+			if err != nil {
+				return nil, err
+			}
+			config.Domain = seafilePublicUrl.Hostname()
+		}
+		services[config.Domain] = config
+	}
 
 	// Check for NextCloud
 	if nextcloudURL := os.Getenv("NEXTCLOUD_URL"); nextcloudURL != "" {
