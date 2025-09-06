@@ -86,6 +86,8 @@ func (sp *ServiceProxy) ValidateShare(sharePath string) (bool, int, error) {
 	switch serviceType.ValidateMethod {
 	case "head":
 		return sp.validateByHead(sharePath)
+	case "get":
+		return sp.validateByGet(sharePath)
 	case "immichApi":
 		return sp.validateImmichAPI(sharePath)
 	default:
@@ -98,6 +100,19 @@ func (sp *ServiceProxy) validateByHead(sharePath string) (bool, int, error) {
 	shareURL := sp.target.ResolveReference(&url.URL{Path: sharePath})
 	
 	resp, err := http.Head(shareURL.String())
+	if err != nil {
+		return false, 0, err
+	}
+	defer resp.Body.Close()
+
+	return resp.StatusCode == http.StatusOK, resp.StatusCode, nil
+}
+
+// validateByGet validates share by making a full GET request to the share path
+func (sp *ServiceProxy) validateByGet(sharePath string) (bool, int, error) {
+	shareURL := sp.target.ResolveReference(&url.URL{Path: sharePath})
+	
+	resp, err := http.Get(shareURL.String())
 	if err != nil {
 		return false, 0, err
 	}

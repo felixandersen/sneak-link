@@ -16,9 +16,10 @@ type ServiceType struct {
 }
 
 var SupportedServices = map[string]ServiceType{
-	"nextcloud": {Name: "nextcloud", SharePaths: []string{"/s/"}, ValidateMethod: "head", FullAccessAfterKnock: true},
-	"immich":    {Name: "immich", SharePaths: []string{"/share/"}, ValidateMethod: "immichApi", FullAccessAfterKnock: true},
-	"paperless": {Name: "paperless", SharePaths: []string{"/share/"}, ValidateMethod: "head", FullAccessAfterKnock: false},
+	"nextcloud":  {Name: "nextcloud", SharePaths: []string{"/s/"}, ValidateMethod: "head", FullAccessAfterKnock: true},
+	"immich":     {Name: "immich", SharePaths: []string{"/share/"}, ValidateMethod: "immichApi", FullAccessAfterKnock: true},
+	"paperless":  {Name: "paperless", SharePaths: []string{"/share/"}, ValidateMethod: "head", FullAccessAfterKnock: false},
+	"photoprism": {Name: "photoprism", SharePaths: []string{"/s/"}, ValidateMethod: "get", FullAccessAfterKnock: true},
 }
 
 type ServiceConfig struct {
@@ -71,8 +72,17 @@ func Load() (*Config, error) {
 		services[config.Domain] = config
 	}
 
+	// Check for Photoprism
+	if photoprismURL := os.Getenv("PHOTOPRISM_URL"); photoprismURL != "" {
+		config, err := parseServiceConfig("photoprism", photoprismURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid PHOTOPRISM_URL: %v", err)
+		}
+		services[config.Domain] = config
+	}
+
 	if len(services) == 0 {
-		return nil, fmt.Errorf("at least one service URL must be configured (NEXTCLOUD_URL, IMMICH_URL, or PAPERLESS_URL)")
+		return nil, fmt.Errorf("at least one service URL must be configured (NEXTCLOUD_URL, IMMICH_URL, PAPERLESS_URL, or PHOTOPRISM_URL)")
 	}
 
 	signingKey := os.Getenv("SIGNING_KEY")
