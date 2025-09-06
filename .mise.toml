@@ -6,7 +6,9 @@ run = "docker build --platform linux/amd64 -t ghcr.io/felixandersen/sneak-link:$
 description = "Push the image"
 run = [
   "echo $CR_PAT | docker login ghcr.io -u felixandersen --password-stdin",
-  "docker push ghcr.io/felixandersen/sneak-link:$(cat VERSION)"
+  "docker tag ghcr.io/felixandersen/sneak-link:$(cat VERSION) ghcr.io/felixandersen/sneak-link:latest",
+  "docker push ghcr.io/felixandersen/sneak-link:$(cat VERSION)",
+  "docker push ghcr.io/felixandersen/sneak-link:latest"
 ]
 
 [tasks.build_and_push_image_dev]
