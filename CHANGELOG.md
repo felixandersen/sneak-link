@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/felixandersen/sneak-link/compare/v1.2.0...v1.3.0) (2025-09-06)
+
+
+### Features
+
+* now supports Photoprism using env variable PHOTOPRISM_URL ([#3](https://github.com/felixandersen/sneak-link/issues/3)) ([b24cbfb](https://github.com/felixandersen/sneak-link/commit/b24cbfbbfc9440f2e7f5692960780fe6aa439e09))
+
 # [1.2.0](https://github.com/felixandersen/sneak-link/compare/v1.1.0...v1.2.0) (2025-08-31)
 
 
