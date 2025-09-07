@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/felixandersen/sneak-link/compare/v1.3.0...v1.3.1) (2025-09-06)
+
+
+### Bug Fixes
+
+* ensure Photoprism sessions get a custom color on the tag in the dashboard table ([14f24c6](https://github.com/felixandersen/sneak-link/commit/14f24c6df8ec5a3f4524c0e92b6a3762ad972252))
+
 # [1.3.0](https://github.com/felixandersen/sneak-link/compare/v1.2.0...v1.3.0) (2025-09-06)
 
 
