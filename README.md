@@ -46,7 +46,7 @@ Sneak Link includes a simple monitoring dashboard that provides real-time insigh
 
 ## Usage scenario
 
-You run multiple self-hosted services on your home lab network that you want to access securely from anywhere without exposing them directly to the internet or managing complex VPN setups for occasional users.
+You want to share content from your self-hosted services (photos, documents, files) with external users, family, friends, or clients, without requiring them to set up VPNs or exposing your services directly to the internet.
 
 ### Network setup
 
@@ -60,11 +60,11 @@ You run multiple self-hosted services on your home lab network that you want to 
 
 ### Access flow
 
-1. **Share creation**: You create share links in your services:
-   - NextCloud: `/s/AbCdEf123`
-   - Immich: `/share/XyZ789`
-   - Paperless-ngx: `/share/secret123`
-   - Photoprism: `/s/k2yta5ims0`
+1. **Create share links**: You create share links in your services for content you want to share:
+   - NextCloud: `/s/AbCdEf123` (shared folder or file)
+   - Immich: `/share/XyZ789` (photo album)
+   - Paperless-ngx: `/share/secret123` (specific document)
+   - Photoprism: `/s/k2yta5ims0` (photo collection)
 
 2. **URL knocking**: You send the complete URL to someone who needs access:
    - `https://nextcloud.yourdomain.com/s/AbCdEf123`
@@ -72,7 +72,7 @@ You run multiple self-hosted services on your home lab network that you want to 
    - `https://paperless.yourdomain.com/share/secret123`
    - `https://photoprism.yourdomain.com/s/k2yta5ims0`
 
-3. **Validation**: When they visit the link:
+3. **Validation**: When recipients click the link:
    - sneak-link receives the request and identifies the service by hostname
    - Validates the share exists by checking if your private service returns HTTP status 200
    - If the share doesn't exist (HTTP status 404 or 401), access is denied
@@ -86,12 +86,12 @@ You run multiple self-hosted services on your home lab network that you want to 
 ### Security benefits
 
 - **No IP whitelisting**: External users don't need static IPs or VPN access
-- **Valid shares only**: Only existing NextCloud or Immich shares grant access
+- **Valid shares only**: Only existing share links grant access
 - **Rate limiting**: Prevents brute force attacks on share URLs
 - **Session management**: Cookie-based access with configurable expiration
 - **Private network**: NextCloud and Immich remains on private network, not directly exposed
 
-This approach provides secure, link-based access to your NextCloud and Immich instances without exposing your private services directly to the internet.
+This approach enables secure external sharing from your self-hosted services without compromising security or requiring technical expertise from recipients.
 
 ## Quick start
 
@@ -164,7 +164,7 @@ The SQLite database stores historical data at the configured `DB_PATH` and can b
 
 ⚠️ **Use at your own discretion. This is new software and has not been widely used in production yet.**
 
-- **Share URL Security**: Relies on NextCloud and Immich generating cryptographically secure random share URLs. Weak entropy in NextCloud or Immich compromises the security model.
+- **Share URL Security**: Relies on your self-hosted service generating cryptographically secure random share URLs. Weak entropy or other vulnerabilities in the share URLs compromises the security model.
 - **Rate Limiting**: IP-based rate limiting can be bypassed with distributed attacks. Consider additional protection at the reverse proxy level.
 - **Session Management**: Cookies persist until expiration even if the original NextCloud or Immich share is deleted. No automatic session invalidation.
 - **Cookie Compliance**: Uses cookies for authentication. Consider privacy laws (GDPR, etc.) if deploying for business use or public access.
