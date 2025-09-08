@@ -3,7 +3,7 @@
 A lightweight, open‑source tool for secure link-based access control with **built-in observability and monitoring features**.  
 After verifying a URL "knock" on a shared link, Sneak Link issues a cookie that grants access to a protected service. No IP whitelisting required.
 
-**Supports NextCloud, Immich, Paperless-ngx, and Photoprism**, with extensible architecture for additional services.
+**Supports NextCloud, Immich, Paperless-ngx, Seafile and Photoprism**, with extensible architecture for additional services.
 
 ## Key features
 
@@ -81,7 +81,7 @@ You want to share content from your self-hosted services (photos, documents, fil
    - Rate limiting prevents brute force attempts on share URLs
 
 4. **Access granted**: For valid shares:
-   - NextCloud/Immich/Photoprism: sneak-link issues a service-specific cookie for full app access
+   - NextCloud/Immich/Seafile/Photoprism: sneak-link issues a service-specific cookie for full app access
    - Paperless-ngx: Direct proxy without cookies (single-request access only)
    - User is transparently proxied to your service instance
 
@@ -98,7 +98,7 @@ This approach enables secure external sharing from your self-hosted services wit
 ## Quick start
 
 ### Prerequisites
-- NextCloud, Immich, Paperless, and/or Photoprism instance running on your private network
+- NextCloud, Immich, Paperless, Seafile, and/or Photoprism instance running on your private network
 - Domain name with split-brain DNS control
 - Docker installed
 
@@ -120,6 +120,7 @@ This approach enables secure external sharing from your self-hosted services wit
      -e NEXTCLOUD_URL=https://nextcloud.yourdomain.com \
      -e IMMICH_URL=https://immich.yourdomain.com \
      -e PAPERLESS_URL=https://paperless.yourdomain.com \
+     -e SEAFILE_URL=https://seafile.yourdomain.com \
      -e PHOTOPRISM_URL=https://photoprism.yourdomain.com \
      -e SIGNING_KEY=$SIGNING_KEY \
      ghcr.io/felixandersen/sneak-link:latest
@@ -139,8 +140,7 @@ That's it!
 |----------|----------|---------|-------------|
 | `NEXTCLOUD_URL` | No* | - | NextCloud instance URL |
 | `IMMICH_URL` | No* | - | Immich instance URL |
-| `SEAFILE_PUBLIC_URL` | No* | - | Seafile url accessible from public |
-| `SEAFILE_PRIVATE_URL` | No* | - | Seafile url accessible from private network |
+| `SEAFILE_URL` | No* | - | Seafile instance URL |
 | `PAPERLESS_URL` | No* | - | Paperless-ngx instance URL |
 | `PHOTOPRISM_URL` | No* | - | Photoprism instance URL |
 | `SIGNING_KEY` | Yes | - | Secret key for signing authentication tokens |
