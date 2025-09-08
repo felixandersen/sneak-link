@@ -3,7 +3,7 @@
 A lightweight, open‑source tool for secure link-based access control with **built-in observability and monitoring features**.  
 After verifying a URL "knock" on a shared link, Sneak Link issues a cookie that grants access to a protected service. No IP whitelisting required.
 
-**Supports NextCloud, Immich, Seafile and Paperless-ngx**, with extensible architecture for additional services.
+**Supports NextCloud, Immich, Paperless-ngx, and Photoprism**, with extensible architecture for additional services.
 
 ## Key features
 
@@ -46,57 +46,59 @@ Sneak Link includes a simple monitoring dashboard that provides real-time insigh
 
 ## Usage scenario
 
-You run multiple self-hosted services on your home lab network that you want to access securely from anywhere without exposing them directly to the internet or managing complex VPN setups for occasional users.
+You want to share content from your self-hosted services (photos, documents, files) with external users, family, friends, or clients, without requiring them to set up VPNs or exposing your services directly to the internet.
 
 ### Network setup
 
 **Local network:**
-- `cloud.yourdomain.com` and `photos.yourdomain.com` resolves to internal services via local DNS
+- eg. `nextcloud.yourdomain.com` resolves to internal services via local DNS
+- your self-hosted service responds to web traffic to that domain name
 
 **Public internet:**
-- `cloud.yourdomain.com` and `photos.yourdomain.com` resolves to your public IP
-- sneak-link responds to web traffic on both domains
+- eg. `nextcloud.yourdomain.com` resolves to your public IP
+- sneak-link responds to web traffic to that domain name
 - sneak-link is configured to proxy traffic to your private services based on hostname using local DNS
 
 ### Access flow
 
-1. **Share creation**: You create share links in your services:
-   - NextCloud: `/s/AbCdEf123`
-   - Immich: `/share/XyZ789`
+1. **Create share links**: You create share links in your services for content you want to share:
+   - NextCloud: `/s/AbCdEf123` (shared folder or file)
+   - Immich: `/share/XyZ789` (photo album)
+   - Paperless-ngx: `/share/secret123` (specific document)
    - Seafile `"/f/AbCdEf123", "/d/AbCdEf123", "/u/d/AbCdEf123"`
-   - Paperless-ngx: `/share/secret123`
+   - Photoprism: `/s/k2yta5ims0` (photo collection)
 
 2. **URL knocking**: You send the complete URL to someone who needs access:
-   - `https://cloud.yourdomain.com/s/AbCdEf123`
-   - `https://photos.yourdomain.com/share/XyZ789`
-   - `https://seafile.yourdomain.com/share/XyZ789`
+   - `https://nextcloud.yourdomain.com/s/AbCdEf123`
+   - `https://immich.yourdomain.com/share/XyZ789`
    - `https://paperless.yourdomain.com/share/secret123`
+   - `https://photoprism.yourdomain.com/s/k2yta5ims0`
 
-3. **Validation**: When they visit the link:
+3. **Validation**: When recipients click the link:
    - sneak-link receives the request and identifies the service by hostname
    - Validates the share exists by checking if your private service returns HTTP status 200
    - If the share doesn't exist (HTTP status 404 or 401), access is denied
    - Rate limiting prevents brute force attempts on share URLs
 
 4. **Access granted**: For valid shares:
-   - NextCloud/Immich/Seafile: sneak-link issues a service-specific cookie for full app access
+   - NextCloud/Immich/Photoprism: sneak-link issues a service-specific cookie for full app access
    - Paperless-ngx: Direct proxy without cookies (single-request access only)
    - User is transparently proxied to your service instance
 
 ### Security benefits
 
 - **No IP whitelisting**: External users don't need static IPs or VPN access
-- **Valid shares only**: Only existing NextCloud or Immich shares grant access
+- **Valid shares only**: Only existing share links grant access
 - **Rate limiting**: Prevents brute force attacks on share URLs
 - **Session management**: Cookie-based access with configurable expiration
 - **Private network**: NextCloud and Immich remains on private network, not directly exposed
 
-This approach provides secure, link-based access to your NextCloud and Immich instances without exposing your private services directly to the internet.
+This approach enables secure external sharing from your self-hosted services without compromising security or requiring technical expertise from recipients.
 
 ## Quick start
 
 ### Prerequisites
-- NextCloud, Immich, Seafile and/or Paperless instance running on your private network
+- NextCloud, Immich, Paperless, and/or Photoprism instance running on your private network
 - Domain name with split-brain DNS control
 - Docker installed
 
@@ -115,11 +117,10 @@ This approach provides secure, link-based access to your NextCloud and Immich in
      -p 9090:9090 \
      -p 3000:3000 \
      -v sneak-link-data:/data \
-     -e NEXTCLOUD_URL=https://cloud.yourdomain.com \
-     -e IMMICH_URL=https://photos.yourdomain.com \
-     -e SEAFILE_PUBLIC_URL=https://seafile.public.yourdomain.com \
-     -e SEAFILE_PRIVATE_URL=https://seafile.private.yourdomain.com \
+     -e NEXTCLOUD_URL=https://nextcloud.yourdomain.com \
+     -e IMMICH_URL=https://immich.yourdomain.com \
      -e PAPERLESS_URL=https://paperless.yourdomain.com \
+     -e PHOTOPRISM_URL=https://photoprism.yourdomain.com \
      -e SIGNING_KEY=$SIGNING_KEY \
      ghcr.io/felixandersen/sneak-link:latest
    ```
@@ -141,6 +142,7 @@ That's it!
 | `SEAFILE_PUBLIC_URL` | No* | - | Seafile url accessible from public |
 | `SEAFILE_PRIVATE_URL` | No* | - | Seafile url accessible from private network |
 | `PAPERLESS_URL` | No* | - | Paperless-ngx instance URL |
+| `PHOTOPRISM_URL` | No* | - | Photoprism instance URL |
 | `SIGNING_KEY` | Yes | - | Secret key for signing authentication tokens |
 | `LISTEN_PORT` | No | 8080 | Port for the HTTP server |
 | `COOKIE_MAX_AGE` | No | 86400 | Cookie expiration time in seconds |
@@ -166,7 +168,7 @@ The SQLite database stores historical data at the configured `DB_PATH` and can b
 
 ⚠️ **Use at your own discretion. This is new software and has not been widely used in production yet.**
 
-- **Share URL Security**: Relies on NextCloud and Immich generating cryptographically secure random share URLs. Weak entropy in NextCloud or Immich compromises the security model.
+- **Share URL Security**: Relies on your self-hosted service generating cryptographically secure random share URLs. Weak entropy or other vulnerabilities in the share URLs compromises the security model.
 - **Rate Limiting**: IP-based rate limiting can be bypassed with distributed attacks. Consider additional protection at the reverse proxy level.
 - **Session Management**: Cookies persist until expiration even if the original NextCloud or Immich share is deleted. No automatic session invalidation.
 - **Cookie Compliance**: Uses cookies for authentication. Consider privacy laws (GDPR, etc.) if deploying for business use or public access.

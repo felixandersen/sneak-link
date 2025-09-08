@@ -413,6 +413,7 @@ const dashboardHTML = `<!DOCTYPE html>
         .service-nextcloud { background-color: #0082c9; }
         .service-immich { background-color: #4250a4; }
         .service-paperless { background-color: #2d4a3e; }
+        .service-photoprism { background-color: #8b5cf6; }
         .service-default { background-color: #6c757d; }
         
         .session-status {
@@ -546,6 +547,7 @@ const dashboardHTML = `<!DOCTYPE html>
             if (serviceLower.includes('nextcloud')) return 'service-nextcloud';
             if (serviceLower.includes('immich')) return 'service-immich';
             if (serviceLower.includes('paperless')) return 'service-paperless';
+            if (serviceLower.includes('photoprism')) return 'service-photoprism';
             return 'service-default';
         }
         
