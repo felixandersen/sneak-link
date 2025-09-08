@@ -52,10 +52,11 @@ You want to share content from your self-hosted services (photos, documents, fil
 
 **Local network:**
 - eg. `nextcloud.yourdomain.com` resolves to internal services via local DNS
+- your self-hosted service responds to web traffic to that domain name
 
 **Public internet:**
 - eg. `nextcloud.yourdomain.com` resolves to your public IP
-- sneak-link responds to web traffic on both domains
+- sneak-link responds to web traffic to that domain name
 - sneak-link is configured to proxy traffic to your private services based on hostname using local DNS
 
 ### Access flow
