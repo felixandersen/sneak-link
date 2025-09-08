@@ -92,7 +92,7 @@ func (sp *ServiceProxy) ValidateShare(sharePath string) (bool, int, error) {
 	case "immichApi":
 		return sp.validateImmichAPI(sharePath)
 	case "text":
-		return sp.validateByText(sharePath, serviceType.TextForInvalidShare)
+		return sp.validateByText(sharePath, serviceType.TextForValidShare)
 	default:
 		return sp.validateByHead(sharePath) // fallback
 	}
@@ -112,9 +112,8 @@ func (sp *ServiceProxy) validateByHead(sharePath string) (bool, int, error) {
 }
 
 // validateByText validates share by checking for specific text in the response body
-func (sp *ServiceProxy) validateByText(sharePath string, TextForInvalidShare *string) (bool, int, error) {
+func (sp *ServiceProxy) validateByText(sharePath string, TextForValidShare []string) (bool, int, error) {
 	shareURL := sp.target.ResolveReference(&url.URL{Path: sharePath})
-
 	resp, err := http.Get(shareURL.String())
 	if err != nil {
 		return false, 0, err
@@ -123,12 +122,18 @@ func (sp *ServiceProxy) validateByText(sharePath string, TextForInvalidShare *st
 
     bodyBytes, err := io.ReadAll(resp.Body)
     if err != nil {
-        return false, resp.StatusCode, err
+        return false, 0, err
     }
 
     bodyString := string(bodyBytes)
-    if strings.Contains(bodyString, *TextForInvalidShare) {
-        return false, resp.StatusCode, nil
+
+	for _, s := range TextForValidShare {
+		if strings.Contains(bodyString, s) {
+			return resp.StatusCode == http.StatusOK, resp.StatusCode, nil
+		}
+	}
+
+    return false, 0, err
     }
 
 // validateByGet validates share by making a full GET request to the share path
