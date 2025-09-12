@@ -48,10 +48,6 @@ type Config struct {
 	MetricsRetentionDays int
 }
 
-func strPtr(s string) *string {
-    return &s
-}
-
 func Load() (*Config, error) {
 	services := make(map[string]*ServiceConfig)
 
