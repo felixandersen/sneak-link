@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"sneak-link/config"
 	"strings"
+	"io"
 )
 
 type ServiceProxy struct {
@@ -90,6 +91,8 @@ func (sp *ServiceProxy) ValidateShare(sharePath string) (bool, int, error) {
 		return sp.validateByGet(sharePath)
 	case "immichApi":
 		return sp.validateImmichAPI(sharePath)
+	case "text":
+		return sp.validateByText(sharePath, serviceType.TextForValidShare)
 	default:
 		return sp.validateByHead(sharePath) // fallback
 	}
@@ -98,7 +101,7 @@ func (sp *ServiceProxy) ValidateShare(sharePath string) (bool, int, error) {
 // validateByHead validates share by making a HEAD request to the share path
 func (sp *ServiceProxy) validateByHead(sharePath string) (bool, int, error) {
 	shareURL := sp.target.ResolveReference(&url.URL{Path: sharePath})
-	
+
 	resp, err := http.Head(shareURL.String())
 	if err != nil {
 		return false, 0, err
@@ -107,6 +110,31 @@ func (sp *ServiceProxy) validateByHead(sharePath string) (bool, int, error) {
 
 	return resp.StatusCode == http.StatusOK, resp.StatusCode, nil
 }
+
+// validateByText validates share by checking for specific text in the response body
+func (sp *ServiceProxy) validateByText(sharePath string, TextForValidShare []string) (bool, int, error) {
+	shareURL := sp.target.ResolveReference(&url.URL{Path: sharePath})
+	resp, err := http.Get(shareURL.String())
+	if err != nil {
+		return false, 0, err
+	}
+	defer resp.Body.Close()
+
+    bodyBytes, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return false, 0, err
+    }
+
+    bodyString := string(bodyBytes)
+
+	for _, s := range TextForValidShare {
+		if strings.Contains(bodyString, s) {
+			return resp.StatusCode == http.StatusOK, resp.StatusCode, nil
+		}
+	}
+
+    return false, 0, err
+    }
 
 // validateByGet validates share by making a full GET request to the share path
 func (sp *ServiceProxy) validateByGet(sharePath string) (bool, int, error) {
