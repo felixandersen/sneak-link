@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/felixandersen/sneak-link/compare/v1.3.1...v1.4.0) (2025-09-12)
+
+
+### Features
+
+* now supports Seafile using env variable SEAFILE_URL ([#2](https://github.com/felixandersen/sneak-link/issues/2)) ([bb04b59](https://github.com/felixandersen/sneak-link/commit/bb04b5996bb77fa11bddd298c5eea1144cb89ce9))
+
 ## [1.3.1](https://github.com/felixandersen/sneak-link/compare/v1.3.0...v1.3.1) (2025-09-06)
 
 
