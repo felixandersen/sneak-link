@@ -414,6 +414,7 @@ const dashboardHTML = `<!DOCTYPE html>
         .service-immich { background-color: #4250a4; }
         .service-paperless { background-color: #2d4a3e; }
         .service-photoprism { background-color: #8b5cf6; }
+        .service-seafile { background-color: #ff9800; }
         .service-default { background-color: #6c757d; }
         
         .session-status {
@@ -548,6 +549,7 @@ const dashboardHTML = `<!DOCTYPE html>
             if (serviceLower.includes('immich')) return 'service-immich';
             if (serviceLower.includes('paperless')) return 'service-paperless';
             if (serviceLower.includes('photoprism')) return 'service-photoprism';
+            if (serviceLower.includes('seafile')) return 'service-seafile';
             return 'service-default';
         }
         
