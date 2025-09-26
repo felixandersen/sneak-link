@@ -171,6 +171,7 @@ The SQLite database stores historical data at the configured `DB_PATH` and can b
 - **Share URL Security**: Relies on your self-hosted service generating cryptographically secure random share URLs. Weak entropy or other vulnerabilities in the share URLs compromises the security model.
 - **Rate Limiting**: IP-based rate limiting can be bypassed with distributed attacks. Consider additional protection at the reverse proxy level.
 - **Session Management**: Cookies persist until expiration even if the original NextCloud or Immich share is deleted. No automatic session invalidation.
+- **Session Isolation**: After accessing a valid share link, users gain full access to the service's login portal and can potentially access other content. Sneak Link does not implement service-specific session isolation or access controls beyond the initial share validation.
 - **Cookie Compliance**: Uses cookies for authentication. Consider privacy laws (GDPR, etc.) if deploying for business use or public access.
 - **Logging Privacy**: Access logs contain IP addresses and usage patterns. Implement appropriate log retention and privacy policies.
 
